@@ -2,6 +2,7 @@ cabal-version:       >=1.10
 name:                sixel
 version:             0.1.0.0
 synopsis:            Sixel library to show images in a terminal emulator
+description:         Sixel can show graphics on a terminal emulator. This library is developed to showing images on ghci.
 license:             BSD3
 license-file:        LICENSE
 homepage:            https://github.com/junjihashimoto/sixel#readme
@@ -23,6 +24,6 @@ library
 executable sixel-exe
   main-is:             Main.hs
   hs-source-dirs:      app
-  build-depends:       base >=4.14 && <4.15
+  build-depends:       base >= 4.7 && < 5
                      , sixel
   default-language:    Haskell2010
