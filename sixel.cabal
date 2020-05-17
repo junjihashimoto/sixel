@@ -11,6 +11,7 @@ copyright:           2020 Junji hashimoto
 category:            graphics
 build-type:          Simple
 extra-source-files:  CHANGELOG.md
+                   , demo.png
 
 library
   exposed-modules:     Data.Sixel

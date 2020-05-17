@@ -15,7 +15,7 @@ To render image data on ghci, just run 'toSixel image-data'.
 
 See following demo.
 
-![demo](./logo.png)
+![demo](./demo.png)
 
 
 # References
