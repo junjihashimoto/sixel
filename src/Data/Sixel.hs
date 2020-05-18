@@ -4,30 +4,36 @@
 module Data.Sixel where
 
 import Codec.Picture
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as BC
+import qualified Data.ByteString.Internal as B
 import Data.Char (chr)
+import qualified Data.Vector.Storable as V
 import Data.Word (Word8)
+import Foreign.C.String
 import Foreign.C.Types
 import Foreign.ForeignPtr
 import Foreign.Ptr
-import Foreign.C.String
-import           System.IO.Unsafe
-import qualified Data.Vector.Storable          as V
+import System.IO.Unsafe
 
 foreign import ccall "bufsize" c_bufsize :: CInt -> CInt -> IO CInt
+
 foreign import ccall "img2sixel" c_img2sixel :: Ptr () -> Ptr () -> CInt -> CInt -> IO CInt
 
 img2sixel :: Image PixelRGB8 -> String
-img2sixel img = unsafePerformIO $ do
+img2sixel img = BC.unpack $ img2sixel' img
+
+img2sixel' :: Image PixelRGB8 -> ByteString
+img2sixel' img = unsafePerformIO $ do
   let (Image w h vec) = img
   bsize <- c_bufsize (fromIntegral w) (fromIntegral h)
-  dptr <- mallocForeignPtrBytes (fromIntegral bsize)
-  let (sptr,_) = V.unsafeToForeignPtr0 vec
-  withForeignPtr dptr $ \dst -> do
+  let (sptr, _) = V.unsafeToForeignPtr0 vec
+  B.createAndTrim (fromIntegral bsize) $ \dst -> do
     withForeignPtr sptr $ \src -> do
       len <- c_img2sixel (castPtr dst) (castPtr src) (fromIntegral w) (fromIntegral h)
-      peekCStringLen (castPtr dst, fromIntegral len)
+      return (fromIntegral len)
 
-newtype SixelImage = SixelImage { toSixelString :: String } deriving (Eq)
+newtype SixelImage = SixelImage {toSixelString :: String} deriving (Eq)
 
 instance Show SixelImage where
   show (SixelImage img) = img
@@ -85,44 +91,45 @@ instance ToSixel DynamicImage where
 
 instance ToSixel (Image PixelRGB8) where
   toSixel img = SixelImage (img2sixel img)
+
 --  toSixel img = SixelImage (show (toSixelCmds img))
 
 toSixelCmds :: Image PixelRGB8 -> [SixelCmd]
 toSixelCmds img =
-    let width = imageWidth img -1
-        height = imageHeight img -1
-        header =
-          [ Start 8 1 0,
-            Size 1 1 width height,
-            ColorMapRGB 0 100 100 100,
-            Color 0
+  let width = imageWidth img -1
+      height = imageHeight img -1
+      header =
+        [ Start 8 1 0,
+          Size 1 1 width height,
+          ColorMapRGB 0 100 100 100,
+          Color 0
+        ]
+      footer = End
+      putSixel j = case j `mod` 6 of
+        0 -> Sixel 1
+        1 -> Sixel 2
+        2 -> Sixel 4
+        3 -> Sixel 8
+        4 -> Sixel 16
+        5 -> Sixel 32
+      pixels =
+        concat
+          [ header,
+            concat
+              ( flip map [0 .. (height -1)] $ \j ->
+                  concat
+                    [ concat
+                        ( flip map [0 .. (width -1)] $ \i ->
+                            [ pixel2colorMap img i j,
+                              putSixel j
+                            ]
+                        ),
+                      if (j `mod` 6) == 5 then [LF] else [CR]
+                    ]
+              ),
+            [footer]
           ]
-        footer = End
-        putSixel j = case j `mod` 6 of
-          0 -> Sixel 1
-          1 -> Sixel 2
-          2 -> Sixel 4
-          3 -> Sixel 8
-          4 -> Sixel 16
-          5 -> Sixel 32
-        pixels =
-          concat
-            [ header,
-              concat
-                ( flip map [0 .. (height -1)] $ \j ->
-                    concat
-                      [ concat
-                          ( flip map [0 .. (width -1)] $ \i ->
-                              [ pixel2colorMap img i j,
-                                putSixel j
-                              ]
-                          ),
-                        if (j `mod` 6) == 5 then [LF] else [CR]
-                      ]
-                ),
-              [footer]
-            ]
-     in pixels
+   in pixels
 
 pixel2colorMap :: Image PixelRGB8 -> Int -> Int -> SixelCmd
 pixel2colorMap img i j =
@@ -132,11 +139,17 @@ pixel2colorMap img i j =
       bb = fromIntegral $ ((fromIntegral b :: Int) * 101) `div` 256
    in ColorMapRGB 0 rr gg bb
 
+-- putImage :: FilePath -> IO ()
+-- putImage file = do
+--   readImage file >>= \case
+--     Left err -> print err
+--     Right img -> putStr $ toSixelString $ toSixel img
+
 putImage :: FilePath -> IO ()
 putImage file = do
   readImage file >>= \case
     Left err -> print err
-    Right img -> putStr $ toSixelString $ toSixel img
+    Right img -> BC.putStr $ img2sixel' $ convertRGB8 img
 
 demo :: [SixelCmd]
 demo =
