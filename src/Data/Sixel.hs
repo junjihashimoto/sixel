@@ -6,6 +6,31 @@ module Data.Sixel where
 import Codec.Picture
 import Data.Char (chr)
 import Data.Word (Word8)
+import Foreign.C.Types
+import Foreign.ForeignPtr
+import Foreign.Ptr
+import Foreign.C.String
+import           System.IO.Unsafe
+import qualified Data.Vector.Storable          as V
+
+foreign import ccall "bufsize" c_bufsize :: CInt -> CInt -> IO CInt
+foreign import ccall "img2sixel" c_img2sixel :: Ptr () -> Ptr () -> CInt -> CInt -> IO CInt
+
+img2sixel :: Image PixelRGB8 -> String
+img2sixel img = unsafePerformIO $ do
+  let (Image w h vec) = img
+  bsize <- c_bufsize (fromIntegral w) (fromIntegral h)
+  dptr <- mallocForeignPtrBytes (fromIntegral bsize)
+  let (sptr,_) = V.unsafeToForeignPtr0 vec
+  withForeignPtr dptr $ \dst -> do
+    withForeignPtr sptr $ \src -> do
+      len <- c_img2sixel (castPtr dst) (castPtr src) (fromIntegral w) (fromIntegral h)
+      peekCStringLen (castPtr dst, fromIntegral len)
+
+newtype SixelImage = SixelImage { toSixelString :: String } deriving (Eq)
+
+instance Show SixelImage where
+  show (SixelImage img) = img
 
 type ColorNumber = Word8
 
@@ -50,13 +75,20 @@ numDigits n
   | otherwise = numDigits (n `div` 10) + 1
 
 class ToSixel a where
-  toSixel :: a -> [SixelCmd]
+  toSixel :: a -> SixelImage
+
+instance ToSixel [SixelCmd] where
+  toSixel xs = SixelImage (concat $ map show xs)
 
 instance ToSixel DynamicImage where
   toSixel dimg = toSixel $ convertRGB8 dimg
 
 instance ToSixel (Image PixelRGB8) where
-  toSixel img =
+  toSixel img = SixelImage (img2sixel img)
+--  toSixel img = SixelImage (show (toSixelCmds img))
+
+toSixelCmds :: Image PixelRGB8 -> [SixelCmd]
+toSixelCmds img =
     let width = imageWidth img -1
         height = imageHeight img -1
         header =
@@ -104,7 +136,7 @@ putImage :: FilePath -> IO ()
 putImage file = do
   readImage file >>= \case
     Left err -> print err
-    Right img -> putStr $ show $ toSixel img
+    Right img -> putStr $ toSixelString $ toSixel img
 
 demo :: [SixelCmd]
 demo =
