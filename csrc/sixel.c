@@ -1,17 +1,31 @@
+#include <string.h>
+#include <stdio.h>
+
 int
 bufsize(int width,int height){
   return 256+((5+3*3+2+1)*width + 1)*height;
 }
 
 void putnum(unsigned char* buf,int* p, unsigned int r) {
-  int v100 = (r)/100;
-  int v10 = ((r)%100)/10;
-  int v1 = (r)%10;
-  if(v100)
-    buf[(*p)++] = '0' + v100;
-  if(v100 || v10)
-    buf[(*p)++] = '0' + v10;
-  buf[(*p)++] = '0' + v1;
+  if(r >= 1000) {
+    unsigned char sbuf[32];
+    int len;
+    int i;
+    sprintf(sbuf,"%d",r);
+    len=strlen(sbuf);
+    for(i=0;i<len;i++){
+      buf[(*p)++] = sbuf[i];
+    }
+  } else {
+    int v100 = (r)/100;
+    int v10 = ((r)%100)/10;
+    int v1 = (r)%10;
+    if(v100)
+      buf[(*p)++] = '0' + v100;
+    if(v100 || v10)
+      buf[(*p)++] = '0' + v10;
+    buf[(*p)++] = '0' + v1;
+  }
 }
 
 int
