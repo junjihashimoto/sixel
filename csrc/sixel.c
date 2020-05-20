@@ -16,7 +16,7 @@ void putnum(unsigned char* buf,int* p, unsigned int r) {
 
 int
 img2sixel(unsigned char* buf, unsigned char* img,int width,int height){
-  int i,j;
+  int i,j,k;
   int p=0;
   int c;
   int prev = (100 << 16 ) | (100 << 8 ) | 100;
@@ -66,6 +66,24 @@ img2sixel(unsigned char* buf, unsigned char* img,int width,int height){
 	putnum(buf,&p,g);
 	buf[p++] = ';';
 	putnum(buf,&p,b);
+      } else {
+	int num;
+	for(k=i+1;k<width;k++){
+	  int pix = (j*width+k)*3;
+	  int r = img[pix]*101/256;
+	  int g = img[pix+1]*101/256;
+	  int b = img[pix+2]*101/256;
+	  int nxt = (r << 16) | (g << 8) | b;
+	  if(nxt!=cur){
+	    break;
+	  }
+	}
+	num = (k-i)-1;
+	if(num > 3){
+	  buf[p++] = '!';
+	  putnum(buf,&p,num+1);
+	  i=k-1;
+	}
       }
       buf[p++] = (1 << (j%6))+0x3f;
       prev = cur;
