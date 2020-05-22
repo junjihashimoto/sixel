@@ -17,9 +17,19 @@ See following demo.
 
 ![demo](https://raw.githubusercontent.com/junjihashimoto/sixel/master/demo.png)
 
+# Terminal requirements
+
+For using sixel, see terminal requirements of [libsixel](https://saitoha.github.io/libsixel).
+
+This library supports OSC-1337, too.
+OSC-1337 is available for iterm2 and [hterm of crostini](https://chromium.googlesource.com/apps/libapps/+/master/hterm).
+
+![demo](https://raw.githubusercontent.com/junjihashimoto/sixel/master/demo-osc1337.png)
 
 # References
 
 * https://en.wikipedia.org/wiki/Sixel
 * https://saitoha.github.io/libsixel
+* https://chromium.googlesource.com/apps/libapps/+/master/hterm/doc/ControlSequences.md#OSC-1337
+* https://www.iterm2.com/documentation-escape-codes.html
 
