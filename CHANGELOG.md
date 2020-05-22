@@ -11,3 +11,7 @@
 ## 0.1.2.1 -- 2020-05-20
 
 * Fix overflow of parsing number
+
+## 0.1.2.2 -- 2020-05-22
+
+* Support for OSC1337
