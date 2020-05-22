@@ -160,7 +160,9 @@ img2sixel img = unsafePerformIO $ do
       return (fromIntegral len)
 
 -- | Display sixel image via ByteString
+-- 
 -- putStr of String is really slow on ghci. (Compiled version is not so slow.)
+-- 
 -- To improve perfomance of rendering on ghci, this function uses putStr of ByteString.
 putImage :: FilePath -> IO ()
 putImage file = do
