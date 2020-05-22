@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Data.Sixel where
 
@@ -36,7 +36,7 @@ latex :: String -> LatexStr
 latex str = LatexStr str 2.5
 
 math :: String -> LatexStr
-math str = LatexStr ("$"++str++"$") 2.5
+math str = LatexStr ("$" ++ str ++ "$") 2.5
 
 instance Show SixelImage where
   show (SixelImage img) = img
@@ -95,7 +95,7 @@ instance {-# OVERLAPS #-} ToSixel [SixelCmd] where
 
 instance {-# OVERLAPS #-} ToSixel DynamicImage where
   toSixel dimg = toSixel $ convertRGB8 dimg
-  putSixel img = BC.putStr $ img2sixel $ convertRGB8 img
+  putSixel img = putSixel $ convertRGB8 img
 
 instance {-# OVERLAPS #-} ToSixel (Image PixelRGB8) where
   toSixel img = SixelImage (BC.unpack $ img2sixel img)
@@ -125,7 +125,7 @@ instance ToSixel LatexStr where
   toSixel (LatexStr str size) = unsafePerformIO $ do
     withSystemTempDirectory "sixel" $ \dir -> do
       writeFile (dir ++ "/sixel.tex") (latexStr str size)
-      (_,outlog,errlog) <- readProcessWithExitCode "pdflatex" ["-output-directory="++dir ,dir ++ "/sixel.tex"] ""
+      (_, outlog, errlog) <- readProcessWithExitCode "pdflatex" ["-output-directory=" ++ dir, dir ++ "/sixel.tex"] ""
       readProcessWithExitCode "convert" [dir ++ "/sixel.pdf", "-quality", "90", dir ++ "/sixel.png"] ""
       readImage (dir ++ "/sixel.png") >>= \case
         Left err -> error $ "can not read sixel.png. // " ++ errlog ++ " // " ++ outlog

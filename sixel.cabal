@@ -17,6 +17,7 @@ extra-source-files:  CHANGELOG.md
 
 library
   exposed-modules:     Data.Sixel
+                     , Data.OSC1337
   hs-source-dirs:      src
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
@@ -25,6 +26,7 @@ library
                      , bytestring
                      , process
                      , temporary
+                     , base64-bytestring
   c-sources:           csrc/sixel.c
 
 executable sixel-exe
