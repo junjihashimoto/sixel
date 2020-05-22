@@ -3,7 +3,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.OSC1337 where
+module Data.OSC1337
+  ( module Data.OSC1337,
+    LatexStr (..),
+    latex,
+    math,
+  )
+where
 
 import Codec.Picture
 import Codec.Picture.Png (encodePng)
@@ -12,10 +18,8 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Base64 (encode)
 import qualified Data.ByteString.Char8 as BC
 import Data.ByteString.Lazy (toStrict)
-import Data.Sixel (LatexStr (..), latex, math)
-import System.IO.Temp (withSystemTempDirectory)
+import Data.Sixel.Internal
 import System.IO.Unsafe (unsafePerformIO)
-import System.Process (readProcessWithExitCode)
 
 data OSCCmd
   = Start
@@ -84,51 +88,18 @@ instance {-# OVERLAPS #-} ToOSC (Image PixelRGB8) where
   toOSC img = OSCImage (BC.unpack $ img2osc img)
   putOSC img = B.putStr $ img2osc img
 
-putOSCImage :: FilePath -> IO ()
-putOSCImage file = do
+putImage :: FilePath -> IO ()
+putImage file = do
   readImage file >>= \case
     Left err -> print err
     Right img -> putOSC img
 
-data LatexStr
-  = LatexStr
-      { toLatexStr :: String,
-        strSize :: Float
-      }
-  deriving (Eq)
-
-latex :: String -> LatexStr
-latex str = LatexStr str 2.5
-
-math :: String -> LatexStr
-math str = LatexStr ("$" ++ str ++ "$") 2.5
-
 instance Show LatexStr where
   show str = show $ toOSC str
 
-latexStr :: String -> Float -> String
-latexStr str size =
-  "\\documentclass[border=2pt]{standalone}"
-    ++ "\\usepackage{amsmath}"
-    ++ "\\usepackage{graphicx}"
-    ++ "\\usepackage{varwidth}"
-    ++ "\\begin{document}"
-    ++ "\\begin{varwidth}{\\linewidth}"
-    ++ "\\scalebox{"
-    ++ show size
-    ++ "}{"
-    ++ str
-    ++ "}"
-    ++ "\\end{varwidth}"
-    ++ "\\end{document}"
-
 instance ToOSC LatexStr where
-  toOSC (LatexStr str size) = unsafePerformIO $ do
-    withSystemTempDirectory "osc1337" $ \dir -> do
-      writeFile (dir ++ "/osc1337.tex") (latexStr str size)
-      (_, outlog, errlog) <- readProcessWithExitCode "pdflatex" ["-output-directory=" ++ dir, dir ++ "/osc1337.tex"] ""
-      readProcessWithExitCode "convert" [dir ++ "/osc1337.pdf", "-quality", "90", dir ++ "/osc1337.png"] ""
-      readImage (dir ++ "/osc1337.png") >>= \case
-        Left err -> error $ "can not read osc1337.png. // " ++ errlog ++ " // " ++ outlog
-        Right img -> return $ toOSC img
+  toOSC str = unsafePerformIO $ do
+    latex2img str >>= \case
+      Left err -> error err
+      Right img -> return $ toOSC img
   putOSC img = putStr $ show $ toOSC img

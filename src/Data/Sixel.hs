@@ -2,13 +2,20 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Sixel where
+module Data.Sixel
+  ( module Data.Sixel,
+    LatexStr (..),
+    latex,
+    math,
+  )
+where
 
 import Codec.Picture
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Internal as B
 import Data.Char (chr)
+import Data.Sixel.Internal
 import qualified Data.Vector.Storable as V
 import Data.Word (Word8)
 import Foreign.C.String
@@ -19,24 +26,7 @@ import System.IO.Temp (withSystemTempDirectory)
 import System.IO.Unsafe (unsafePerformIO)
 import System.Process (readProcessWithExitCode)
 
-foreign import ccall "bufsize" c_bufsize :: CInt -> CInt -> IO CInt
-
-foreign import ccall "img2sixel" c_img2sixel :: Ptr () -> Ptr () -> CInt -> CInt -> IO CInt
-
 newtype SixelImage = SixelImage {toSixelString :: String} deriving (Eq)
-
-data LatexStr
-  = LatexStr
-      { toLatexStr :: String,
-        strSize :: Float
-      }
-  deriving (Eq)
-
-latex :: String -> LatexStr
-latex str = LatexStr str 2.5
-
-math :: String -> LatexStr
-math str = LatexStr ("$" ++ str ++ "$") 2.5
 
 instance Show SixelImage where
   show (SixelImage img) = img
@@ -105,31 +95,11 @@ instance {-# OVERLAPS #-} ToSixel SixelImage where
   toSixel = id
   putSixel img = putStr $ show img
 
-latexStr :: String -> Float -> String
-latexStr str size =
-  "\\documentclass[border=2pt]{standalone}"
-    ++ "\\usepackage{amsmath}"
-    ++ "\\usepackage{graphicx}"
-    ++ "\\usepackage{varwidth}"
-    ++ "\\begin{document}"
-    ++ "\\begin{varwidth}{\\linewidth}"
-    ++ "\\scalebox{"
-    ++ show size
-    ++ "}{"
-    ++ str
-    ++ "}"
-    ++ "\\end{varwidth}"
-    ++ "\\end{document}"
-
 instance ToSixel LatexStr where
-  toSixel (LatexStr str size) = unsafePerformIO $ do
-    withSystemTempDirectory "sixel" $ \dir -> do
-      writeFile (dir ++ "/sixel.tex") (latexStr str size)
-      (_, outlog, errlog) <- readProcessWithExitCode "pdflatex" ["-output-directory=" ++ dir, dir ++ "/sixel.tex"] ""
-      readProcessWithExitCode "convert" [dir ++ "/sixel.pdf", "-quality", "90", dir ++ "/sixel.png"] ""
-      readImage (dir ++ "/sixel.png") >>= \case
-        Left err -> error $ "can not read sixel.png. // " ++ errlog ++ " // " ++ outlog
-        Right img -> return $ toSixel img
+  toSixel str = unsafePerformIO $ do
+    latex2img str >>= \case
+      Left err -> error err
+      Right img -> return $ toSixel img
   putSixel img = putStr $ show $ toSixel img
 
 --  toSixel img = SixelImage (show (toSixelCmds img))
