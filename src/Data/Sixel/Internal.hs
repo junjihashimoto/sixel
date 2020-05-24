@@ -15,6 +15,7 @@ import System.Process (readProcessWithExitCode)
 foreign import ccall "bufsize" c_bufsize :: CInt -> CInt -> IO CInt
 
 foreign import ccall "img2sixel" c_img2sixel :: Ptr () -> Ptr () -> CInt -> CInt -> IO CInt
+foreign import ccall "img2palettized_sixel" c_img2palettized_sixel :: Ptr () -> Ptr () -> Ptr () -> CInt -> CInt -> IO CInt
 
 data LatexStr
   = LatexStr
