@@ -15,3 +15,8 @@
 ## 0.1.2.2 -- 2020-05-22
 
 * Support for OSC1337
+
+## 0.1.2.32 -- 2020-05-25
+
+* Use the palette of 256 colors to fix not working on xterm.
+* Change from convert(imagemagick) to gs(ghostscript), because convert does not work on ubuntu18.04.

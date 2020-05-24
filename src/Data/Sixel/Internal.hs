@@ -51,7 +51,7 @@ latex2img (LatexStr str size) =
   withSystemTempDirectory "sixel" $ \dir -> do
     writeFile (dir ++ "/sixel.tex") (latexStr str size)
     (_, outlog, errlog) <- readProcessWithExitCode "pdflatex" ["-output-directory=" ++ dir, dir ++ "/sixel.tex"] ""
-    readProcessWithExitCode "convert" [dir ++ "/sixel.pdf", "-quality", "90", dir ++ "/sixel.png"] ""
+    readProcessWithExitCode "gs" ["-dSAFER", "-r75", "-sDEVICE=png16m", "-o", dir ++ "/sixel.png", dir ++ "/sixel.pdf"] ""
     readImage (dir ++ "/sixel.png") >>= \case
       Left err -> return $ Left $ "can not read sixel.png. \n" ++ err ++ "\n" ++ errlog ++ "\n" ++ outlog
       Right img -> return $ Right img
