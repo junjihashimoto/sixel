@@ -113,3 +113,73 @@ img2sixel(unsigned char* buf, unsigned char* img,int width,int height){
   return p;
 }
 
+
+int
+img2palettized_sixel(unsigned char* buf, unsigned char* img, unsigned char* colors,int width,int height){
+  int i,j,k;
+  int p=0;
+  int c;
+  int prev = -1;
+  buf[p++] = 033;  // ESC
+  buf[p++] = 'P';
+  buf[p++] = '8';
+  buf[p++] = ';';
+  buf[p++] = '1';
+  buf[p++] = ';';
+  buf[p++] = '0';
+  buf[p++] = 'q';
+  buf[p++] = '"';
+  buf[p++] = '1';
+  buf[p++] = ';';
+  buf[p++] = '1';
+  buf[p++] = ';';
+  putnum(buf,&p,width);
+  buf[p++] = ';';
+  putnum(buf,&p,height);
+  for(i=0;i<256;i++){
+    buf[p++] = '#';
+    putnum(buf,&p,i);
+    buf[p++] = ';';
+    buf[p++] = '2';
+    buf[p++] = ';';
+    putnum(buf,&p,colors[i*3]*101/256);
+    buf[p++] = ';';
+    putnum(buf,&p,colors[i*3+1]*101/256);
+    buf[p++] = ';';
+    putnum(buf,&p,colors[i*3+2]*101/256);
+  }
+  for(j=0;j<height;j++){
+    for(i=0;i<width;i++){
+      int cur = img[j*width+i];
+      if (prev != cur){
+	buf[p++] = '#';
+	putnum(buf,&p,cur);
+      } else {
+      	int num;
+      	for(k=i+1;k<width;k++){
+      	  int nxt = img[j*width+k];
+      	  if(nxt!=cur){
+      	    break;
+      	  }
+      	}
+      	num = (k-i)-1;
+      	if(num > 3){
+      	  buf[p++] = '!';
+      	  putnum(buf,&p,num+1);
+      	  i=k-1;
+      	}
+      }
+      buf[p++] = (1 << (j%6))+0x3f;
+      prev = cur;
+    }
+    if(j%6 ==5){
+      buf[p++] = '-'; // LR
+    }else{
+      buf[p++] = '$'; // CR
+    }
+  }
+  buf[p++] = 033;  // END
+  buf[p++] = '\\'; // END
+  return p;
+}
+

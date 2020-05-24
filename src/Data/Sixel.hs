@@ -88,8 +88,8 @@ instance {-# OVERLAPS #-} ToSixel DynamicImage where
   putSixel img = putSixel $ convertRGB8 img
 
 instance {-# OVERLAPS #-} ToSixel (Image PixelRGB8) where
-  toSixel img = SixelImage (BC.unpack $ img2sixel img)
-  putSixel img = BC.putStr $ img2sixel img
+  toSixel img = SixelImage (BC.unpack $ img2palettizedSixel img)
+  putSixel img = BC.putStr $ img2palettizedSixel img
 
 instance {-# OVERLAPS #-} ToSixel SixelImage where
   toSixel = id
@@ -158,6 +158,20 @@ img2sixel img = unsafePerformIO $ do
     withForeignPtr sptr $ \src -> do
       len <- c_img2sixel (castPtr dst) (castPtr src) (fromIntegral w) (fromIntegral h)
       return (fromIntegral len)
+
+img2palettizedSixel :: Image PixelRGB8 -> ByteString
+img2palettizedSixel img = unsafePerformIO $ do
+  let (img',palette) = palettize (PaletteOptions MedianMeanCut True 256) img
+      (Image w h vec) = img'
+      (Image _ _ p) = palette
+  bsize <- c_bufsize (fromIntegral w) (fromIntegral h)
+  let (sptr, _) = V.unsafeToForeignPtr0 vec
+      (spalette, _) = V.unsafeToForeignPtr0 p
+  B.createAndTrim (fromIntegral bsize) $ \dst -> do
+    withForeignPtr spalette $ \colors -> do
+      withForeignPtr sptr $ \src -> do
+        len <- c_img2palettized_sixel (castPtr dst) (castPtr src) (castPtr colors) (fromIntegral w) (fromIntegral h)
+        return (fromIntegral len)
 
 -- | Display sixel image via ByteString
 -- 
