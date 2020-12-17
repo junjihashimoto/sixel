@@ -1,0 +1,24 @@
+cabal-version:       2.2
+name:                examples
+version:             0.1.0.0
+synopsis:            example projects for sixel
+-- description:
+homepage:            https://github.com/junjihashimoto/sixel#readme
+license:             BSD-3-Clause
+author:              Junji Hashimoto
+maintainer:          junji.hashimoto@gmail.com
+copyright:           2020 Junji hashimoto
+category:            Graphics
+build-type:          Simple
+
+executable hvega
+  hs-source-dirs:      hvega
+  main-is:             Main.hs
+  build-depends:      base >= 4.7 && < 5
+                    , hvega
+                    , sixel
+                    , aeson
+                    , text
+                    , JuicyPixels
+                    , temporary
+                    , process
